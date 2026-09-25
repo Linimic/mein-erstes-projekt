@@ -341,6 +341,24 @@ j.add_chart(h, "A62")
 # Reihenfolge: Anleitung, Jahresauswertung, Monate, Listen
 wb.move_sheet("LISTEN", offset=len(wb.sheetnames))
 wb.active = 1
+
+# Optional: Einträge übernehmen  (python3 erstelle_dienstdoku_vorlage.py daten.json ziel.xlsx)
+import sys, json, datetime
+if len(sys.argv) > 2:
+    OUT = sys.argv[2]
+    eintraege = json.load(open(sys.argv[1], encoding="utf-8"))
+    nextrow = {m: FIRST for m in MONATE}
+    order = {a: i for i, a in enumerate(ANGEBOTE)}
+    eintraege.sort(key=lambda e: (e["datum"], order.get(e.get("angebot"), 99)))
+    for e in eintraege:
+        d = datetime.date.fromisoformat(e["datum"]); m = MONATE[d.month - 1]
+        ws = wb[m]; r = nextrow[m]; nextrow[m] += 1
+        ws[f"A{r}"] = d
+        for key, col in [("angebot","C"),("stunden","D"),("w","E"),("d","F"),("m","G"),("ab10","I"),("ab14","J"),
+                         ("ab16","K"),("ab18","L"),("dienst","N"),("beschreibung","O"),("wichtig","P")]:
+            if e.get(key) not in (None, ""): ws[f"{col}{r}"] = e[key]
+        if not e.get("angebot"):
+            ws[f"C{r}"].fill = PatternFill("solid", fgColor=YEL)
 from openpyxl.workbook.properties import CalcProperties
 wb.calculation = CalcProperties(fullCalcOnLoad=True)
 wb.save(OUT); print("ok", wb.sheetnames)
